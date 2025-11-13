@@ -1,0 +1,230 @@
+sd-decals/
+├─ generate_site.py
+├─ README.md
+├─ templates/
+│  └─ index_template.html
+├─ data/
+│  └─ products.json
+└─ static/
+   ├─ style.css
+   ├─ logo.svg
+   └─ placeholder.png   (add an image file here or download any placeholder)
+#!/usr/bin/env python3
+"""
+Simple static site generator for SD Decals
+Run: python generate_site.py
+This writes the site into the ./site folder.
+"""
+import os, json
+from string import Template
+BASE = os.path.dirname(__file__)
+OUT = os.path.join(BASE, "site")
+TEMPLATE = os.path.join(BASE, "templates", "index_template.html")
+PRODUCTS = os.path.join(BASE, "data", "products.json")
+STATIC_SRC = os.path.join(BASE, "static")
+
+def ensure_dirs():
+    os.makedirs(OUT, exist_ok=True)
+    os.makedirs(os.path.join(OUT, "static"), exist_ok=True)
+
+def load_products():
+    with open(PRODUCTS, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def build_index(products):
+    with open(TEMPLATE, "r", encoding="utf-8") as f:
+        tpl = Template(f.read())
+
+    cards = []
+    for p in products:
+        img = p.get("image", "static/placeholder.png")
+        # If image path is relative and located in static, keep it as-is
+        card = f"""
+<article class="product-card">
+  <img src="{img}" alt="{p['name']}">
+  <h3>{p['name']}</h3>
+  <p class="price">${p['price']:.2f}</p>
+  <p class="desc">{p.get('description','')}</p>
+  <a class="buy-btn" href="mailto:orders@example.com?subject=Order%20{p['id']}">Order</a>
+</article>
+"""
+        cards.append(card)
+
+    html = tpl.substitute(PRODUCT_CARDS="\n".join(cards))
+    with open(os.path.join(OUT, "index.html"), "w", encoding="utf-8") as f:
+        f.write(html)
+    print("Wrote:", os.path.join(OUT, "index.html"))
+
+def copy_static():
+    for fn in os.listdir(STATIC_SRC):
+        src = os.path.join(STATIC_SRC, fn)
+        dst = os.path.join(OUT, "static", fn)
+        # binary copy
+        with open(src, "rb") as fsrc, open(dst, "wb") as fdst:
+            fdst.write(fsrc.read())
+        print("Copied:", dst)
+
+if __name__ == "__main__":
+    ensure_dirs()
+    products = load_products()
+    build_index(products)
+    copy_static()
+    print("Site generated in ./site")
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SD Decals — Sports Decals</title>
+  <link rel="stylesheet" href="static/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="logo-wrap">
+      <img src="static/logo.svg" alt="SD Decals logo" class="logo" />
+      <div>
+        <h1>SD Decals</h1>
+        <p class="tag">Custom sports decals — helmets, cars, water bottles</p>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="#products">Products</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h2>Durable vinyl decals built for athletes</h2>
+      <p>Create your team’s look — custom sizes, colors, and lamination options.</p>
+      <a class="cta" href="#products">Browse decals</a>
+    </section>
+
+    <section id="products" class="products">
+      <h2>Featured decals</h2>
+      <div class="product-grid">
+        ${PRODUCT_CARDS}
+      </div>
+    </section>
+
+    <section id="about" class="about">
+      <h2>About SD Decals</h2>
+      <p>We produce high-quality, cut-to-shape vinyl decals. Orders are handled via email — include quantity, size, and any artwork references.</p>
+    </section>
+
+    <section id="contact" class="contact">
+      <h2>Contact / Orders</h2>
+      <p>Email: <a href="mailto:orders@example.com">orders@example.com</a></p>
+      <p>Include product id, sizes, and quantity. We’ll reply with price and shipping options.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; SD Decals — All rights reserved</p>
+  </footer>
+</body>
+</html>
+[
+  {
+    "id": "sd-001",
+    "name": "Classic SD Helmet Decal",
+    "price": 12.50,
+    "description": "Matte vinyl, 3-inch height. Cut-to-shape SD logo for helmets.",
+    "image": "static/placeholder.png"
+  },
+  {
+    "id": "sd-002",
+    "name": "Large SD Car Decal",
+    "price": 18.00,
+    "description": "Weatherproof laminate — great for cars and windows.",
+    "image": "static/placeholder.png"
+  },
+  {
+    "id": "sd-003",
+    "name": "Mini SD Water Bottle Decal (2\")",
+    "price": 6.00,
+    "description": "Small and durable — perfect for water bottles and helmets.",
+    "image": "static/placeholder.png"
+  }
+]
+:root{--accent:#0b66ff;--bg:#fff;--muted:#666}
+*{box-sizing:border-box}
+body{font-family:Inter,system-ui,Arial,sans-serif;margin:0;color:#111;background:var(--bg)}
+.site-header{display:flex;justify-content:space-between;align-items:center;padding:1rem 2rem;border-bottom:1px solid #eee}
+.logo-wrap{display:flex;align-items:center;gap:0.75rem}
+.logo{width:56px;height:56px}
+.nav a{margin-left:1rem;text-decoration:none;color:var(--muted)}
+.hero{padding:3rem 2rem;text-align:center;background:linear-gradient(180deg,#f7fbff,white)}
+.hero .cta{display:inline-block;margin-top:1rem;padding:0.6rem 1rem;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none}
+.products{padding:2rem}
+.product-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem}
+.product-card{border:1px solid #eee;padding:1rem;border-radius:8px;text-align:center;background:#fff}
+.product-card img{max-width:100%;height:120px;object-fit:contain}
+.product-card h3{margin:0.5rem 0}
+.product-card .price{font-weight:700;color:var(--accent)}
+.buy-btn{display:inline-block;margin-top:0.6rem;padding:0.45rem 0.75rem;border-radius:6px;background:#111;color:#fff;text-decoration:none}
+.about, .contact{padding:2rem;border-top:1px solid #f0f0f0}
+footer{padding:1rem;text-align:center;font-size:0.9rem;color:var(--muted);border-top:1px solid #eee}
+.tag{margin:0;font-size:0.9rem;color:var(--muted)}
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240" role="img" aria-label="SD Sports Decals Logo">
+  <defs>
+    <!-- Gradient fills -->
+    <linearGradient id="blueGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#002B5B"/>
+      <stop offset="100%" stop-color="#0B66FF"/>
+    </linearGradient>
+    <linearGradient id="silverGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#D9D9D9"/>
+      <stop offset="100%" stop-color="#F5F5F5"/>
+    </linearGradient>
+    <style>
+      .s { fill: url(#blueGrad); }
+      .d { fill: url(#silverGrad); }
+      .outline { fill:none; stroke:#111; stroke-width:4; }
+      .label { font-family: 'Arial Black', sans-serif; font-weight:700; fill:#0B66FF; font-size:26px; letter-spacing:1px; }
+    </style>
+  </defs>
+
+  <!-- Background (optional; remove if you want transparent) -->
+  <rect x="0" y="0" width="240" height="240" rx="24" fill="#FFFFFF"/>
+
+  <!-- Stylized “S” -->
+  <path class="s" d="M50 70 
+    C50 45, 110 45, 110 65 
+    C110 85, 80 85, 65 95 
+    C50 105, 90 110, 110 130 
+    C130 150, 80 165, 50 150 
+    C35 142, 35 130, 55 125 
+    C80 120, 100 115, 85 105 
+    C70 95, 50 95, 50 70Z" />
+
+  <!-- Stylized “D” -->
+  <path class="d" d="M140 60 
+    L140 160 
+    L170 160 
+    C205 160, 215 130, 215 110 
+    C215 85, 205 60, 170 60 
+    Z" />
+
+  <!-- Outline for punch -->
+  <path class="outline" d="M50 70 
+    C50 45, 110 45, 110 65 
+    C110 85, 80 85, 65 95 
+    C50 105, 90 110, 110 130 
+    C130 150, 80 165, 50 150 
+    C35 142, 35 130, 55 125 
+    C80 120, 100 115, 85 105 
+    C70 95, 50 95, 50 70Z" />
+  <path class="outline" d="M140 60 
+    L140 160 
+    L170 160 
+    C205 160, 215 130, 215 110 
+    C215 85, 205 60, 170 60 
+    Z" />
+
+  <!-- Label text -->
+  <text x="120" y="210" text-anchor="middle" class="label">SPORTS DECALS</text>
+</svg>
+
